@@ -6,5 +6,5 @@ window.AHIS_CONFIG = {
   APP_URL: "https://script.google.com/a/~/macros/s/AKfycbyjPmUMzLzWMWw6IRrZpagfhs4yiWmhDsoWmNbxqPE95m12WuCDTQxFiW_HdQNoKEwY6Q/exec",
   LOGO_URL: "icons/icon-192.png",
   LOGO_ABSOLUTE_URL: "https://zakhyzulfandi-coder.github.io/abuhurairah/icons/icon-192.png",
-  THEME_COLOR: "#0b2f8f"
+  THEME_COLOR: "#ffffff"
 };
