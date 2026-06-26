@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b2f8f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SISFO AHIS">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>SISFO AHIS</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    :root {
+      --primary: #0b2f8f;
+      --gold: #c79a2d;
+      --text: #0f172a;
+      --bg: #f8fafc;
+      --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      touch-action: manipulation;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+      overscroll-behavior: none;
+    }
+
+    #appFrame {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      border: 0;
+      display: block;
+      background: white;
+    }
+
+    .splash {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top, rgba(199,154,45,.20), transparent 38%),
+        linear-gradient(145deg, #061a52, #0b2f8f 52%, #123faf);
+      transition: opacity .35s ease, visibility .35s ease;
+    }
+
+    .splash.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .splash-card {
+      width: min(320px, calc(100vw - 44px));
+      padding: 28px 24px;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 28px;
+      background: rgba(255,255,255,.10);
+      box-shadow: 0 24px 90px rgba(0,0,0,.28);
+      backdrop-filter: blur(18px);
+      text-align: center;
+      color: white;
+    }
+
+    .logo-wrap {
+      width: 104px;
+      height: 104px;
+      margin: 0 auto 16px;
+      border-radius: 28px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 14px 34px rgba(0,0,0,.22);
+      overflow: hidden;
+    }
+
+    .logo-wrap img {
+      width: 92px;
+      height: 92px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .splash-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+
+    .splash-subtitle {
+      margin: 6px 0 18px;
+      color: rgba(255,255,255,.86);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .loader {
+      width: 100%;
+      height: 7px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,.22);
+    }
+
+    .loader span {
+      display: block;
+      width: 42%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, white, var(--gold));
+      animation: loading 1.05s ease-in-out infinite;
+    }
+
+    @keyframes loading {
+      0% { transform: translateX(-105%); }
+      100% { transform: translateX(255%); }
+    }
+
+    .status-banner {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(12px + var(--safe-bottom));
+      z-index: 70;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(15, 23, 42, .94);
+      color: white;
+      box-shadow: 0 16px 44px rgba(0,0,0,.26);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .status-banner.show {
+      display: flex;
+    }
+
+    .status-banner button {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 800;
+      background: white;
+      color: #0f172a;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .fallback {
+      position: fixed;
+      inset: 0;
+      z-index: 45;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background: #f8fafc;
+      text-align: center;
+    }
+
+    .fallback.show {
+      display: grid;
+    }
+
+    .fallback-box {
+      max-width: 420px;
+      padding: 24px;
+      border-radius: 24px;
+      background: white;
+      box-shadow: 0 18px 50px rgba(15,23,42,.12);
+      border: 1px solid rgba(148,163,184,.3);
+    }
+
+    .fallback-box h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .fallback-box p {
+      margin: 0 0 16px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .fallback-box a,
+    .fallback-box button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--primary);
+      color: white;
+      text-decoration: none;
+      font-weight: 800;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <iframe
+    id="appFrame"
+    title="SISFO AHIS"
+    allow="geolocation; camera; microphone; clipboard-read; clipboard-write; fullscreen; web-share"
+    referrerpolicy="no-referrer-when-downgrade">
+  </iframe>
+
+  <div class="splash" id="splash">
+    <div class="splash-card">
+      <div class="logo-wrap">
+        <img id="splashLogo" src="icons/icon-192.png" alt="Logo MTs Abu Hurairah">
+      </div>
+      <h1 class="splash-title">SISFO AHIS</h1>
+      <p class="splash-subtitle">Memuat sistem informasi MTs Abu Hurairah...</p>
+      <div class="loader"><span></span></div>
+    </div>
+  </div>
+
+  <div class="fallback" id="fallback">
+    <div class="fallback-box">
+      <h1>Aplikasi belum dapat dimuat</h1>
+      <p>Periksa koneksi internet. Jika masih gagal, buka aplikasi langsung melalui tombol di bawah.</p>
+      <a id="openDirect" target="_blank" rel="noopener">Buka Langsung</a>
+      <button type="button" id="retryBtn" style="margin-left:8px;">Coba Lagi</button>
+    </div>
+  </div>
+
+  <div class="status-banner" id="offlineBanner">
+    <span>Perangkat sedang offline. Beberapa fitur mungkin belum dapat dipakai.</span>
+    <button type="button" onclick="location.reload()">Muat ulang</button>
+  </div>
+
+  <div class="status-banner" id="updateBanner">
+    <span>Update aplikasi tersedia. Muat ulang untuk memakai versi terbaru.</span>
+    <button type="button" id="reloadUpdate">Update</button>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    (function () {
+      const config = window.AHIS_CONFIG || {};
+      const appUrl = config.APP_URL || "";
+      const logoUrl = config.LOGO_URL || "icons/icon-192.png";
+
+      const frame = document.getElementById("appFrame");
+      const splash = document.getElementById("splash");
+      const fallback = document.getElementById("fallback");
+      const openDirect = document.getElementById("openDirect");
+      const retryBtn = document.getElementById("retryBtn");
+      const splashLogo = document.getElementById("splashLogo");
+      const offlineBanner = document.getElementById("offlineBanner");
+      const updateBanner = document.getElementById("updateBanner");
+      const reloadUpdate = document.getElementById("reloadUpdate");
+
+      document.title = config.APP_NAME || "SISFO AHIS";
+      splashLogo.src = logoUrl;
+      openDirect.href = appUrl;
+
+      let loaded = false;
+
+      function loadApp() {
+        fallback.classList.remove("show");
+        splash.classList.remove("hidden");
+        loaded = false;
+
+        const separator = appUrl.includes("?") ? "&" : "?";
+        frame.src = appUrl + separator + "wrapper=github&t=" + Date.now();
+      }
+
+      function hideSplash() {
+        loaded = true;
+        setTimeout(() => splash.classList.add("hidden"), 450);
+      }
+
+      frame.addEventListener("load", hideSplash);
+      retryBtn.addEventListener("click", loadApp);
+
+      setTimeout(() => {
+        if (!loaded) {
+          fallback.classList.add("show");
+          splash.classList.add("hidden");
+        }
+      }, 16000);
+
+      function updateOnlineStatus() {
+        offlineBanner.classList.toggle("show", !navigator.onLine);
+      }
+
+      window.addEventListener("online", updateOnlineStatus);
+      window.addEventListener("offline", updateOnlineStatus);
+      updateOnlineStatus();
+
+      loadApp();
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", async () => {
+          try {
+            const reg = await navigator.serviceWorker.register("service-worker.js");
+
+            reg.addEventListener("updatefound", () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener("statechange", () => {
+                if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                  updateBanner.classList.add("show");
+                }
+              });
+            });
+          } catch (err) {
+            console.warn("Service worker gagal didaftarkan:", err);
+          }
+        });
+
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          window.location.reload();
+        });
+      }
+
+      reloadUpdate.addEventListener("click", async () => {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: "SKIP_WAITING" });
+            return;
+          }
+        }
+        window.location.reload();
+      });
+
+      document.addEventListener("gesturestart", (e) => e.preventDefault());
+      document.addEventListener("dblclick", (e) => e.preventDefault(), { passive: false });
+    })();
+  </script>
+</body>
+</html>
