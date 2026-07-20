@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- GITHUB/VERCEL WRAPPER: FIX CACHE APP SCRIPT INDEX 42 DAN LOGIN LOCK -->
 <html lang="id">
 <head>
   <meta charset="utf-8">
@@ -8,6 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="SISFO AHIS">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>SISFO AHIS</title>
 
   <link rel="manifest" href="manifest.json">
@@ -20,6 +24,7 @@
       --muted: #64748b;
       --gold: #c79a2d;
       --safe-bottom: env(safe-area-inset-bottom);
+      --app-height: 100dvh;
     }
 
     * {
@@ -49,7 +54,8 @@
       position: fixed;
       inset: 0;
       width: 100vw;
-      height: 100dvh;
+      height: var(--app-height, 100dvh);
+      max-height: var(--app-height, 100dvh);
       border: 0;
       display: block;
       background: transparent !important;
@@ -231,8 +237,10 @@
   <iframe
     id="appFrame"
     title="SISFO AHIS"
-    allow="geolocation; camera; microphone; clipboard-read; clipboard-write; fullscreen; web-share"
-    referrerpolicy="no-referrer-when-downgrade">
+    src="about:blank"
+    allow="geolocation; camera; microphone; gyroscope; accelerometer; magnetometer; clipboard-read; clipboard-write; fullscreen; web-share"
+    allowfullscreen
+    referrerpolicy="strict-origin-when-cross-origin">
   </iframe>
 
   <div class="splash" id="splash">
@@ -265,12 +273,18 @@
     <button type="button" id="reloadUpdate">Update</button>
   </div>
 
-  <script src="config.js"></script>
+  <script src="config.js?v=2026.07.21.02"></script>
   <script>
     (function () {
+      "use strict";
+
+      const WRAPPER_VERSION = "2026.07.21.02-vercel-cache-and-login-lock";
       const config = window.AHIS_CONFIG || {};
-      const appUrl = config.APP_URL || "";
+      const appUrl = String(config.APP_URL || "").trim();
       const logoUrl = config.LOGO_URL || "icons/icon-192.png";
+      const APP_RELEASE = String(
+        config.APP_RELEASE || "2026.07.21-index42-login-lock"
+      ).trim();
 
       const frame = document.getElementById("appFrame");
       const splash = document.getElementById("splash");
@@ -282,20 +296,80 @@
       const updateBanner = document.getElementById("updateBanner");
       const reloadUpdate = document.getElementById("reloadUpdate");
 
+      function syncAppViewport() {
+        const viewportHeight = window.visualViewport && window.visualViewport.height
+          ? window.visualViewport.height
+          : window.innerHeight;
+
+        document.documentElement.style.setProperty(
+          "--app-height",
+          Math.max(1, Math.round(viewportHeight)) + "px"
+        );
+      }
+
+      syncAppViewport();
+      window.addEventListener("resize", syncAppViewport, { passive: true });
+      window.addEventListener("orientationchange", function () {
+        setTimeout(syncAppViewport, 120);
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", syncAppViewport, { passive: true });
+        window.visualViewport.addEventListener("scroll", syncAppViewport, { passive: true });
+      }
+
       document.title = config.APP_NAME || "SISFO AHIS";
       splashLogo.src = logoUrl;
       openDirect.href = appUrl;
 
       let loaded = false;
 
-      function loadApp() {
+      function buildAppUrl() {
+        if (!appUrl) return "";
+
+        const separator = appUrl.includes("?") ? "&" : "?";
+
+        /*
+         * Token rilis tetap hanya berubah saat Index Apps Script diperbarui.
+         * Ini memaksa Vercel/WebView mengambil dokumen Apps Script terbaru,
+         * tetapi tidak membuat URL baru pada setiap aplikasi dibuka.
+         */
+        return appUrl + separator +
+          "wrapper=vercel" +
+          "&appRelease=" + encodeURIComponent(APP_RELEASE);
+      }
+
+      function loadApp(forceReload) {
         fallback.classList.remove("show");
         splash.classList.remove("hidden");
         loaded = false;
 
-        const separator = appUrl.includes("?") ? "&" : "?";
-        frame.src = appUrl + separator + "wrapper=github&t=" + Date.now();
+        const targetUrl = buildAppUrl();
+
+        if (!targetUrl) {
+          console.error("APP_URL belum tersedia pada config.js.");
+          return;
+        }
+
+        const currentSrc = String(frame.getAttribute("src") || "").trim();
+
+        if (!forceReload && currentSrc === targetUrl) {
+          return;
+        }
+
+        if (forceReload && currentSrc && currentSrc !== "about:blank") {
+          frame.setAttribute("src", "about:blank");
+
+          setTimeout(function () {
+            frame.setAttribute("src", targetUrl);
+          }, 80);
+
+          return;
+        }
+
+        frame.setAttribute("src", targetUrl);
       }
+
+      openDirect.href = buildAppUrl() || appUrl;
 
       function hideSplash() {
         loaded = true;
@@ -303,7 +377,9 @@
       }
 
       frame.addEventListener("load", hideSplash);
-      retryBtn.addEventListener("click", loadApp);
+      retryBtn.addEventListener("click", function () {
+        loadApp(true);
+      });
 
       setTimeout(() => {
         if (!loaded) {
@@ -320,12 +396,46 @@
       window.addEventListener("offline", updateOnlineStatus);
       updateOnlineStatus();
 
-      loadApp();
+      async function clearOldWrapperCachesOnce() {
+        const migrationKey = "ahis_wrapper_cache_migrated_" + WRAPPER_VERSION;
+
+        try {
+          if (localStorage.getItem(migrationKey) === "1") return;
+
+          if ("caches" in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(
+              cacheNames.map(function (cacheName) {
+                return caches.delete(cacheName);
+              })
+            );
+          }
+
+          localStorage.setItem(migrationKey, "1");
+        } catch (error) {
+          console.warn("Cache lama tidak dapat dibersihkan:", error);
+        }
+      }
+
+      clearOldWrapperCachesOnce().finally(function () {
+        loadApp(false);
+      });
 
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", async () => {
           try {
-            const reg = await navigator.serviceWorker.register("service-worker.js");
+            const reg = await navigator.serviceWorker.register(
+              "service-worker.js?v=" + encodeURIComponent(WRAPPER_VERSION),
+              { updateViaCache: "none" }
+            );
+
+            if (reg.update) {
+              await reg.update();
+            }
+
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: "SKIP_WAITING" });
+            }
 
             reg.addEventListener("updatefound", () => {
               const newWorker = reg.installing;
@@ -356,6 +466,14 @@
           }
         }
         window.location.reload();
+      });
+
+      window.addEventListener("pageshow", function (event) {
+        syncAppViewport();
+
+        if (event.persisted) {
+          loadApp(true);
+        }
       });
 
       document.addEventListener("gesturestart", (e) => e.preventDefault());
